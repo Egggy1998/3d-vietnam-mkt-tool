@@ -3,9 +3,8 @@
  * 3D Vietnam Marketing System - Quick Setup Tool
  * Run: node setup.js
  * 
- * Setup n8n + Facebook + Skills
- * - Copies OpenClaw skills from source workspace
- * - Clones fullstack-mkt repo (MKT knowledge - BONUS)
+ * Setup n8n + Facebook + OpenClaw Skills
+ * Skills are included in repo, copied to workspace on setup
  */
 
 import { createInterface } from 'readline';
@@ -26,7 +25,7 @@ async function main() {
   console.log(`
 ╔═══════════════════════════════════════════════════════════════╗
 ║     3D VIETNAM MARKETING SYSTEM - SETUP TOOL                  ║
-║     Setup n8n + Facebook + Skills                            ║
+║     Setup n8n + Facebook + OpenClaw Skills                    ║
 ╚═══════════════════════════════════════════════════════════════╝
   `);
 
@@ -39,36 +38,27 @@ async function main() {
 
   const workspace = path.join(homedir(), '.openclaw', 'workspace');
   const skillsDir = path.join(workspace, 'skills');
-  const sourceSkills = path.join(homedir(), '.openclaw', 'workspace', 'skills');
+  const scriptDir = path.join(homedir(), '.openclaw', 'workspace', 'setup-tool');
 
   log('\n📁 Tạo thư mục...', 'step');
   mkdirSync(path.join(workspace, 'memory'), { recursive: true });
   mkdirSync(skillsDir, { recursive: true });
 
-  // Clone fullstack-mkt repo (MKT knowledge - BONUS)
-  log('\n📦 Clone fullstack-mkt repo (MKT knowledge)...', 'step');
-  if (!existsSync(path.join(skillsDir, 'fullstack-mkt'))) {
-    run(`git clone https://github.com/minhnv0807/fullstack-mkt-skills.git "${skillsDir}/fullstack-mkt"`);
-    log('fullstack-mkt repo cloned', 'success');
-  } else {
-    log('fullstack-mkt repo đã tồn tại', 'info');
-  }
-
-  // Copy OpenClaw Skills từ workspace (NẾU CÓ sẵn)
+  // Copy OpenClaw Skills từ repo
   log('\n📋 Copy OpenClaw Skills...', 'step');
   const skillsToCopy = [
     'content-writer',
     'marketing-planner', 
     'facebook-page-manager',
     'baserow-integration',
-    'social-media-manager',
     'image-designer',
+    'social-media-manager',
     'n8n-workflow-engineering'
   ];
 
-  console.log('\nOpenClaw Skills (từ workspace):');
+  console.log('\nOpenClaw Skills:');
   for (const skill of skillsToCopy) {
-    const src = path.join(sourceSkills, skill);
+    const src = path.join(scriptDir, 'skills', skill);
     const dest = path.join(skillsDir, skill);
     
     if (existsSync(src)) {
@@ -79,15 +69,17 @@ async function main() {
         log(`Skill đã tồn tại: ${skill}`, 'info');
       }
     } else {
-      log(`Skill không có trong workspace: ${skill}`, 'error');
+      log(`Skill không tìm thấy: ${skill}`, 'error');
     }
   }
 
-  console.log('\nMKT Knowledge (từ repo):');
-  if (existsSync(path.join(skillsDir, 'fullstack-mkt'))) {
-    log('fullstack-mkt/ ✅', 'success');
+  // Clone fullstack-mkt repo (BONUS)
+  log('\n📦 Clone fullstack-mkt repo (BONUS)...', 'step');
+  if (!existsSync(path.join(skillsDir, 'fullstack-mkt'))) {
+    run(`git clone https://github.com/minhnv0807/fullstack-mkt-skills.git "${skillsDir}/fullstack-mkt"`);
+    log('fullstack-mkt repo cloned', 'success');
   } else {
-    log('fullstack-mkt/ ❌', 'error');
+    log('fullstack-mkt repo đã tồn tại', 'info');
   }
 
   // Create TOOLS.md
@@ -124,28 +116,17 @@ async function main() {
 ## Facebook
 - Page ID: ${FB_PAGE_ID}
 
-## Skills
-
-### OpenClaw Skills (từ workspace)
+## OpenClaw Skills
 - content-writer - SA3: Viết content Facebook
 - marketing-planner - SA2: Lên kế hoạch content
 - facebook-page-manager - SA4: Đăng bài Facebook
 - baserow-integration - Kết nối Baserow
 - image-designer - SA1: Design ảnh
-- n8n-workflow-engineering - n8n workflows
 - social-media-manager - Quản lý đa kênh
+- n8n-workflow-engineering - n8n workflows
 
-### MKT Knowledge (từ repo - BONUS)
+## MKT Knowledge (bonus)
 - fullstack-mkt/ - 16 MKT knowledge files
-
-## Baserow Tables (CREATED MANUALLY)
-### Content Calendar
-- Ngày đăng (date), Kênh đăng (single_select), Tiêu đề ngắn (text)
-- Content bài đăng (long_text), Link ảnh đã thiết kế (text)
-- Trạng thái (single_select), Ghi chú (text)
-
-### Product Database
-- Tên thiết bị (text), Link ảnh (url), Link sản phẩm (url)
 
 ## Workflow
 1. Content (SA3) → Import Baserow
@@ -158,6 +139,17 @@ async function main() {
   log('\n🔍 Test Facebook...', 'step');
   const fbOk = run(`curl -s "https://graph.facebook.com/v19.0/${FB_PAGE_ID}?access_token=${FB_PAGE_TOKEN}" | grep -q "name"`);
   log(`Facebook: ${fbOk ? 'OK' : 'FAILED'}`, fbOk ? 'success' : 'error');
+
+  // Summary
+  console.log('\n============================================');
+  console.log('OPENCLAW SKILLS:');
+  for (const skill of skillsToCopy) {
+    const dest = path.join(skillsDir, skill);
+    console.log(`  ${existsSync(dest) ? '✅' : '❌'} ${skill}`);
+  }
+
+  console.log('\nMKT KNOWLEDGE:');
+  console.log(`  ${existsSync(path.join(skillsDir, 'fullstack-mkt')) ? '✅' : '❌'} fullstack-mkt/`);
 
   console.log(`
 ╔═══════════════════════════════════════════════════════════════╗
