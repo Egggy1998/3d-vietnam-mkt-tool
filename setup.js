@@ -3,12 +3,14 @@
  * 3D Vietnam Marketing System - Quick Setup Tool
  * Run: node setup.js
  * 
- * Setup n8n + Facebook + Skills (copies from workspace + clones fullstack-mkt repo)
+ * Setup n8n + Facebook + Skills
+ * - Copies OpenClaw skills from source workspace
+ * - Clones fullstack-mkt repo (MKT knowledge - BONUS)
  */
 
 import { createInterface } from 'readline';
 import { execSync } from 'child_process';
-import { existsSync, writeFileSync, mkdirSync, cpSync, rmSync } from 'fs';
+import { existsSync, writeFileSync, mkdirSync, cpSync } from 'fs';
 import { homedir } from 'os';
 import path from 'path';
 
@@ -37,14 +39,14 @@ async function main() {
 
   const workspace = path.join(homedir(), '.openclaw', 'workspace');
   const skillsDir = path.join(workspace, 'skills');
-  const sourceSkills = path.join(homedir(), '.openclaw', 'workspace', 'skills'); // Source is same workspace
+  const sourceSkills = path.join(homedir(), '.openclaw', 'workspace', 'skills');
 
   log('\n📁 Tạo thư mục...', 'step');
   mkdirSync(path.join(workspace, 'memory'), { recursive: true });
   mkdirSync(skillsDir, { recursive: true });
 
-  // Clone fullstack-mkt repo
-  log('\n📦 Clone fullstack-mkt repo...', 'step');
+  // Clone fullstack-mkt repo (MKT knowledge - BONUS)
+  log('\n📦 Clone fullstack-mkt repo (MKT knowledge)...', 'step');
   if (!existsSync(path.join(skillsDir, 'fullstack-mkt'))) {
     run(`git clone https://github.com/minhnv0807/fullstack-mkt-skills.git "${skillsDir}/fullstack-mkt"`);
     log('fullstack-mkt repo cloned', 'success');
@@ -52,8 +54,8 @@ async function main() {
     log('fullstack-mkt repo đã tồn tại', 'info');
   }
 
-  // Copy essential skills
-  log('\n📋 Copy skills vào workspace...', 'step');
+  // Copy OpenClaw Skills từ workspace (NẾU CÓ sẵn)
+  log('\n📋 Copy OpenClaw Skills...', 'step');
   const skillsToCopy = [
     'content-writer',
     'marketing-planner', 
@@ -64,6 +66,7 @@ async function main() {
     'n8n-workflow-engineering'
   ];
 
+  console.log('\nOpenClaw Skills (từ workspace):');
   for (const skill of skillsToCopy) {
     const src = path.join(sourceSkills, skill);
     const dest = path.join(skillsDir, skill);
@@ -76,8 +79,15 @@ async function main() {
         log(`Skill đã tồn tại: ${skill}`, 'info');
       }
     } else {
-      log(`Skill không tìm thấy: ${skill}`, 'error');
+      log(`Skill không có trong workspace: ${skill}`, 'error');
     }
+  }
+
+  console.log('\nMKT Knowledge (từ repo):');
+  if (existsSync(path.join(skillsDir, 'fullstack-mkt'))) {
+    log('fullstack-mkt/ ✅', 'success');
+  } else {
+    log('fullstack-mkt/ ❌', 'error');
   }
 
   // Create TOOLS.md
@@ -115,9 +125,18 @@ async function main() {
 - Page ID: ${FB_PAGE_ID}
 
 ## Skills
-- content-writer, marketing-planner, facebook-page-manager
-- baserow-integration, image-designer, n8n-workflow-engineering
-- fullstack-mkt (16 MKT skills bonus)
+
+### OpenClaw Skills (từ workspace)
+- content-writer - SA3: Viết content Facebook
+- marketing-planner - SA2: Lên kế hoạch content
+- facebook-page-manager - SA4: Đăng bài Facebook
+- baserow-integration - Kết nối Baserow
+- image-designer - SA1: Design ảnh
+- n8n-workflow-engineering - n8n workflows
+- social-media-manager - Quản lý đa kênh
+
+### MKT Knowledge (từ repo - BONUS)
+- fullstack-mkt/ - 16 MKT knowledge files
 
 ## Baserow Tables (CREATED MANUALLY)
 ### Content Calendar
@@ -140,22 +159,13 @@ async function main() {
   const fbOk = run(`curl -s "https://graph.facebook.com/v19.0/${FB_PAGE_ID}?access_token=${FB_PAGE_TOKEN}" | grep -q "name"`);
   log(`Facebook: ${fbOk ? 'OK' : 'FAILED'}`, fbOk ? 'success' : 'error');
 
-  // Summary
-  console.log('\n============================================');
-  console.log('SKILLS ĐÃ COPY:');
-  for (const skill of skillsToCopy) {
-    const dest = path.join(skillsDir, skill);
-    console.log(`  ${existsSync(dest) ? '✅' : '❌'} ${skill}`);
-  }
-  console.log('  ✅ fullstack-mkt');
-
   console.log(`
 ╔═══════════════════════════════════════════════════════════════╗
 ║                 ✅ SETUP HOÀN THÀNH                           ║
 ╠═══════════════════════════════════════════════════════════════╣
-║  FILES: TOOLS.md, PLAYBOOK.md, tokens.json                   ║
+║  FILES: TOOLS.md, PLAYBOOK.md, tokens.json                     ║
 ╠═══════════════════════════════════════════════════════════════╣
-║  NEXT: Create Baserow tables MANUALLY, then test workflow   ║
+║  NEXT: Create Baserow tables MANUALLY, then test workflow  ║
 ╚═══════════════════════════════════════════════════════════════╝
 `);
 
