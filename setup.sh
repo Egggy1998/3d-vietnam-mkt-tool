@@ -3,14 +3,14 @@
 # Run: bash setup.sh
 # 
 # Setup n8n + Facebook credentials
-# Skills are copied from existing workspace skills folder
+# Copies OpenClaw skills from source workspace + clones fullstack-mkt knowledge repo
 
 set -e
 
 echo "
 ╔═══════════════════════════════════════════════════════════════╗
 ║     3D VIETNAM MARKETING SYSTEM - SETUP TOOL                    ║
-║     Setup n8n + Facebook + Skills                              ║
+║     Setup n8n + Facebook + Skills                             ║
 ╚═══════════════════════════════════════════════════════════════╝
 "
 
@@ -36,7 +36,7 @@ read -p "5. Tên Business (VD: 3D Vietnam): " BUSINESS_NAME
 
 WORKSPACE="$HOME/.openclaw/workspace"
 SKILLS_DIR="$WORKSPACE/skills"
-SOURCE_SKILLS="$HOME/.openclaw/workspace/skills"  # Source is same workspace
+SOURCE_SKILLS="$HOME/.openclaw/workspace/skills"  # Skills copy từ workspace hiện tại
 
 # Create directories
 echo ""
@@ -45,9 +45,9 @@ mkdir -p "$WORKSPACE/memory"
 mkdir -p "$SKILLS_DIR"
 log "Thư mục OK"
 
-# Clone fullstack-mkt repo
+# Clone fullstack-mkt repo (MKT knowledge files - BONUS)
 echo ""
-warn "Clone fullstack-mkt repo..."
+warn "Clone fullstack-mkt repo (MKT knowledge)..."
 if [ ! -d "$SKILLS_DIR/fullstack-mkt" ]; then
     git clone https://github.com/minhnv0807/fullstack-mkt-skills.git "$SKILLS_DIR/fullstack-mkt" 2>/dev/null || warn "Clone failed (skip)"
 else
@@ -55,9 +55,9 @@ else
 fi
 log "fullstack-mkt repo OK"
 
-# Copy essential skills from workspace
+# Copy OpenClaw Skills từ workspace (NẾU CÓ sẵn)
 echo ""
-warn "Copy skills vào workspace..."
+warn "Copy OpenClaw Skills..."
 
 SKILLS_TO_COPY="content-writer marketing-planner facebook-page-manager baserow-integration social-media-manager image-designer n8n-workflow-engineering"
 
@@ -70,9 +70,31 @@ for skill in $SKILLS_TO_COPY; do
             warn "Skill đã tồn tại: $skill"
         fi
     else
-        warn "Skill không tìm thấy: $skill"
+        warn "Skill không tìm thấy trong workspace: $skill"
     fi
 done
+
+echo ""
+echo "============================================"
+echo "SKILLS SAU SETUP:"
+echo ""
+echo "OpenClaw Skills (từ workspace):"
+for skill in $SKILLS_TO_COPY; do
+    if [ -d "$SKILLS_DIR/$skill" ]; then
+        echo "  ✅ $skill"
+    else
+        echo "  ❌ $skill (không có)"
+    fi
+done
+
+echo ""
+echo "MKT Knowledge (từ repo):"
+if [ -d "$SKILLS_DIR/fullstack-mkt" ]; then
+    echo "  ✅ fullstack-mkt/"
+    ls "$SKILLS_DIR/fullstack-mkt/" | sed 's/^/      - /'
+else
+    echo "  ❌ fullstack-mkt (không có)"
+fi
 
 # Create TOOLS.md
 echo ""
@@ -122,13 +144,17 @@ cat > "$WORKSPACE/PLAYBOOK.md" << EOF
 - Page ID: ${FB_PAGE_ID}
 
 ## Skills
-- skills/content-writer/ - SA3: Viết content Facebook
-- skills/marketing-planner/ - SA2: Lên kế hoạch content
-- skills/facebook-page-manager/ - SA4: Đăng bài Facebook
-- skills/baserow-integration/ - Kết nối Baserow
-- skills/image-designer/ - SA1: Design ảnh
-- skills/n8n-workflow-engineering/ - n8n workflows
-- skills/fullstack-mkt/ - 16 MKT skills (bonus)
+### OpenClaw Skills (từ workspace)
+- content-writer - SA3: Viết content Facebook
+- marketing-planner - SA2: Lên kế hoạch content
+- facebook-page-manager - SA4: Đăng bài Facebook
+- baserow-integration - Kết nối Baserow
+- image-designer - SA1: Design ảnh
+- n8n-workflow-engineering - n8n workflows
+- social-media-manager - Quản lý đa kênh
+
+### MKT Knowledge (từ repo)
+- fullstack-mkt/ - 16 MKT knowledge files (bonus)
 
 ## Baserow Tables (CREATED MANUALLY)
 ### Content Calendar
@@ -166,25 +192,11 @@ else
     error "FAILED"
 fi
 
-# Summary
-echo ""
-echo "============================================"
-echo "SKILLS ĐÃ COPY:"
-for skill in $SKILLS_TO_COPY; do
-    if [ -d "$SKILLS_DIR/$skill" ]; then
-        echo "  ✅ $skill"
-    fi
-done
-
 echo "
 ╔═══════════════════════════════════════════════════════════════╗
 ║                 ✅ SETUP HOÀN THÀNH                          ║
 ╠═══════════════════════════════════════════════════════════════╣
-║  SKILLS:                                                     ║
-$(for skill in $SKILLS_TO_COPY; do echo "║    - $skill"; done)
-║    - fullstack-mkt                                           ║
-╠═══════════════════════════════════════════════════════════════╣
-║  FILES:                                                      ║
+║  FILES:                                                     ║
 ║    - ~/.openclaw/workspace/TOOLS.md                         ║
 ║    - ~/.openclaw/workspace/PLAYBOOK.md                      ║
 ║    - ~/.openclaw/workspace/skills/facebook-page-manager/    ║
