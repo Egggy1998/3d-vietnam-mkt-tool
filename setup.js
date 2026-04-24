@@ -3,12 +3,12 @@
  * 3D Vietnam Marketing System - Quick Setup Tool
  * Run: node setup.js
  * 
- * Setup n8n + Facebook + Skills (Baserow tables created MANUALLY)
+ * Setup n8n + Facebook + Skills (copies from workspace + clones fullstack-mkt repo)
  */
 
 import { createInterface } from 'readline';
 import { execSync } from 'child_process';
-import { existsSync, writeFileSync, mkdirSync } from 'fs';
+import { existsSync, writeFileSync, mkdirSync, cpSync, rmSync } from 'fs';
 import { homedir } from 'os';
 import path from 'path';
 
@@ -18,13 +18,13 @@ const log = (msg, type = 'info') => {
   const icons = { info: 'ℹ️', success: '✅', error: '❌', step: '🔧' };
   console.log(`${icons[type]} ${msg}`);
 };
-const run = (cmd) => { try { return execSync(cmd, { encoding: 'utf8', stdio: 'pipe' }).trim(); } catch { return null; } };
+const run = (cmd) => { try { return execSync(cmd, { encoding: 'utf8', stdio: 'pipe' }).trim(); } catch (e) { return null; } };
 
 async function main() {
   console.log(`
 ╔═══════════════════════════════════════════════════════════════╗
 ║     3D VIETNAM MARKETING SYSTEM - SETUP TOOL                  ║
-║     Setup n8n + Facebook + Skills                             ║
+║     Setup n8n + Facebook + Skills                            ║
 ╚═══════════════════════════════════════════════════════════════╝
   `);
 
@@ -37,17 +37,48 @@ async function main() {
 
   const workspace = path.join(homedir(), '.openclaw', 'workspace');
   const skillsDir = path.join(workspace, 'skills');
+  const sourceSkills = path.join(homedir(), '.openclaw', 'workspace', 'skills'); // Source is same workspace
 
   log('\n📁 Tạo thư mục...', 'step');
   mkdirSync(path.join(workspace, 'memory'), { recursive: true });
   mkdirSync(skillsDir, { recursive: true });
-  mkdirSync(path.join(skillsDir, 'facebook-page-manager'), { recursive: true });
 
-  log('\n📦 Clone skills repo...', 'step');
-  if (!existsSync(path.join(skillsDir, 'fullstack-mkt-skills'))) {
-    run(`git clone https://github.com/minhnv0807/fullstack-mkt-skills.git "${skillsDir}/fullstack-mkt-skills"`);
+  // Clone fullstack-mkt repo
+  log('\n📦 Clone fullstack-mkt repo...', 'step');
+  if (!existsSync(path.join(skillsDir, 'fullstack-mkt'))) {
+    run(`git clone https://github.com/minhnv0807/fullstack-mkt-skills.git "${skillsDir}/fullstack-mkt"`);
+    log('fullstack-mkt repo cloned', 'success');
+  } else {
+    log('fullstack-mkt repo đã tồn tại', 'info');
   }
-  log('Skills OK', 'success');
+
+  // Copy essential skills
+  log('\n📋 Copy skills vào workspace...', 'step');
+  const skillsToCopy = [
+    'content-writer',
+    'marketing-planner', 
+    'facebook-page-manager',
+    'baserow-integration',
+    'social-media-manager',
+    'image-designer',
+    'n8n-workflow-engineering'
+  ];
+
+  for (const skill of skillsToCopy) {
+    const src = path.join(sourceSkills, skill);
+    const dest = path.join(skillsDir, skill);
+    
+    if (existsSync(src)) {
+      if (!existsSync(dest)) {
+        cpSync(src, dest);
+        log(`Copied: ${skill}`, 'success');
+      } else {
+        log(`Skill đã tồn tại: ${skill}`, 'info');
+      }
+    } else {
+      log(`Skill không tìm thấy: ${skill}`, 'error');
+    }
+  }
 
   // Create TOOLS.md
   log('\n📝 Tạo TOOLS.md...', 'step');
@@ -61,15 +92,12 @@ async function main() {
 ## Facebook
 - **Page ID**: ${FB_PAGE_ID}
 - **Token**: ${FB_PAGE_TOKEN}
-
-## FRIDAYAI (Claude)
-- **API Key**: sk-e2cc849b6212823af9af349bf58ee75229ee3cb71812925f8d8f339cc8aa9079
-- **Endpoint**: https://oneai.fridayai.com/v1
 `);
   log('TOOLS.md OK', 'success');
 
   // Create tokens.json
   log('\n🔑 Tạo tokens.json...', 'step');
+  mkdirSync(path.join(skillsDir, 'facebook-page-manager'), { recursive: true });
   writeFileSync(path.join(skillsDir, 'facebook-page-manager', 'tokens.json'),
     JSON.stringify({ pages: { [FB_PAGE_ID]: { name: BUSINESS_NAME, token: FB_PAGE_TOKEN } } }, null, 2));
   log('tokens.json OK', 'success');
@@ -86,24 +114,19 @@ async function main() {
 ## Facebook
 - Page ID: ${FB_PAGE_ID}
 
-## Baserow Tables (CREATED MANUALLY)
-### Content Calendar (ID: {CONTENT_TABLE_ID})
-| Field | Type |
-|-------|------|
-| Ngày đăng | date |
-| Kênh đăng | single_select |
-| Tiêu đề ngắn | text |
-| Content bài đăng | long_text |
-| Link ảnh đã thiết kế | text |
-| Trạng thái | single_select |
-| Ghi chú | text |
+## Skills
+- content-writer, marketing-planner, facebook-page-manager
+- baserow-integration, image-designer, n8n-workflow-engineering
+- fullstack-mkt (16 MKT skills bonus)
 
-### Product Database (ID: {PRODUCT_TABLE_ID})
-| Field | Type |
-|-------|------|
-| Tên thiết bị | text |
-| Link ảnh | url |
-| Link sản phẩm | url |
+## Baserow Tables (CREATED MANUALLY)
+### Content Calendar
+- Ngày đăng (date), Kênh đăng (single_select), Tiêu đề ngắn (text)
+- Content bài đăng (long_text), Link ảnh đã thiết kế (text)
+- Trạng thái (single_select), Ghi chú (text)
+
+### Product Database
+- Tên thiết bị (text), Link ảnh (url), Link sản phẩm (url)
 
 ## Workflow
 1. Content (SA3) → Import Baserow
@@ -117,13 +140,22 @@ async function main() {
   const fbOk = run(`curl -s "https://graph.facebook.com/v19.0/${FB_PAGE_ID}?access_token=${FB_PAGE_TOKEN}" | grep -q "name"`);
   log(`Facebook: ${fbOk ? 'OK' : 'FAILED'}`, fbOk ? 'success' : 'error');
 
+  // Summary
+  console.log('\n============================================');
+  console.log('SKILLS ĐÃ COPY:');
+  for (const skill of skillsToCopy) {
+    const dest = path.join(skillsDir, skill);
+    console.log(`  ${existsSync(dest) ? '✅' : '❌'} ${skill}`);
+  }
+  console.log('  ✅ fullstack-mkt');
+
   console.log(`
 ╔═══════════════════════════════════════════════════════════════╗
 ║                 ✅ SETUP HOÀN THÀNH                           ║
 ╠═══════════════════════════════════════════════════════════════╣
-║  FILES: TOOLS.md, PLAYBOOK.md, tokens.json                     ║
+║  FILES: TOOLS.md, PLAYBOOK.md, tokens.json                   ║
 ╠═══════════════════════════════════════════════════════════════╣
-║  NEXT: Create Baserow tables MANUALLY, then test workflow    ║
+║  NEXT: Create Baserow tables MANUALLY, then test workflow   ║
 ╚═══════════════════════════════════════════════════════════════╝
 `);
 
