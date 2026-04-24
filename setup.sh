@@ -2,14 +2,15 @@
 # 3D Vietnam Marketing System - Quick Setup
 # Run: bash setup.sh
 # 
-# Setup n8n credentials (Baserow tables created MANUALLY on Baserow UI)
+# Setup n8n + Facebook credentials
+# Skills are copied from existing workspace skills folder
 
 set -e
 
 echo "
 ╔═══════════════════════════════════════════════════════════════╗
-║     3D VIETNAM MARKETING SYSTEM - SETUP TOOL                  ║
-║     Setup n8n + Facebook + Skills                            ║
+║     3D VIETNAM MARKETING SYSTEM - SETUP TOOL                    ║
+║     Setup n8n + Facebook + Skills                              ║
 ╚═══════════════════════════════════════════════════════════════╝
 "
 
@@ -35,33 +36,43 @@ read -p "5. Tên Business (VD: 3D Vietnam): " BUSINESS_NAME
 
 WORKSPACE="$HOME/.openclaw/workspace"
 SKILLS_DIR="$WORKSPACE/skills"
+SOURCE_SKILLS="$HOME/.openclaw/workspace/skills"  # Source is same workspace
 
 # Create directories
 echo ""
 warn "Tạo thư mục..."
 mkdir -p "$WORKSPACE/memory"
-mkdir -p "$SKILLS_DIR/facebook-page-manager"
+mkdir -p "$SKILLS_DIR"
 log "Thư mục OK"
 
-# Clone fullstack-mkt-skills repo
+# Clone fullstack-mkt repo
 echo ""
-warn "Clone fullstack-mkt-skills repo..."
+warn "Clone fullstack-mkt repo..."
 if [ ! -d "$SKILLS_DIR/fullstack-mkt" ]; then
     git clone https://github.com/minhnv0807/fullstack-mkt-skills.git "$SKILLS_DIR/fullstack-mkt" 2>/dev/null || warn "Clone failed (skip)"
 else
     warn "fullstack-mkt repo đã tồn tại"
 fi
+log "fullstack-mkt repo OK"
 
-# Copy essential skills from workspace skills folder
-for skill in content-writer marketing-planner facebook-page-manager baserow-integration social-media-manager image-designer n8n-workflow-engineering; do
-    if [ -d "$SKILLS_DIR/$skill" ]; then
-        warn "Skill found: $skill"
+# Copy essential skills from workspace
+echo ""
+warn "Copy skills vào workspace..."
+
+SKILLS_TO_COPY="content-writer marketing-planner facebook-page-manager baserow-integration social-media-manager image-designer n8n-workflow-engineering"
+
+for skill in $SKILLS_TO_COPY; do
+    if [ -d "$SOURCE_SKILLS/$skill" ]; then
+        if [ ! -d "$SKILLS_DIR/$skill" ]; then
+            cp -r "$SOURCE_SKILLS/$skill" "$SKILLS_DIR/"
+            log "Copied: $skill"
+        else
+            warn "Skill đã tồn tại: $skill"
+        fi
     else
-        warn "Skill not found: $skill"
+        warn "Skill không tìm thấy: $skill"
     fi
 done
-
-log "Skills structure ready"
 
 # Create TOOLS.md
 echo ""
@@ -77,16 +88,13 @@ cat > "$WORKSPACE/TOOLS.md" << EOF
 ## Facebook
 - **Page ID**: ${FB_PAGE_ID}
 - **Token**: ${FB_PAGE_TOKEN}
-
-## FRIDAYAI (Claude)
-- **API Key**: sk-e2cc849b6212823af9af349bf58ee75229ee3cb71812925f8d8f339cc8aa9079
-- **Endpoint**: https://oneai.fridayai.com/v1
 EOF
 log "TOOLS.md OK"
 
 # Create tokens.json
 echo ""
 warn "Tạo tokens.json..."
+mkdir -p "$SKILLS_DIR/facebook-page-manager"
 cat > "$SKILLS_DIR/facebook-page-manager/tokens.json" << EOF
 {
   "pages": {
@@ -105,25 +113,25 @@ warn "Tạo PLAYBOOK.md..."
 cat > "$WORKSPACE/PLAYBOOK.md" << EOF
 # CLAW MARKETING SYSTEM - Playbook
 
-## 1. Concept
-AI Marketing Agent cho spa/beauty equipment - ${BUSINESS_NAME}
+## ${BUSINESS_NAME}
 
-## 2. Tech Stack
-| Service | Notes |
-|---------|-------|
-| n8n | ${N8N_URL} - SA Designer workflow |
-| Facebook | ${FB_PAGE_ID} |
-
-## 3. n8n Webhook
+## n8n Webhook
 - URL: ${N8N_URL}/webhook/${N8N_WEBHOOK_ID}
 
-## 4. Daily Workflow
-1. Content (SA3) → Import Baserow (Table: {CONTENT_TABLE_ID})
-2. Design (n8n) → Webhook → Update "Link ảnh đã thiết kế"
-3. Post (SA4) → Facebook Schedule → Update "Trạng thái" = Done
+## Facebook
+- Page ID: ${FB_PAGE_ID}
 
-## 5. Baserow Tables (CREATED MANUALLY)
-### Content Calendar (ID: {CONTENT_TABLE_ID})
+## Skills
+- skills/content-writer/ - SA3: Viết content Facebook
+- skills/marketing-planner/ - SA2: Lên kế hoạch content
+- skills/facebook-page-manager/ - SA4: Đăng bài Facebook
+- skills/baserow-integration/ - Kết nối Baserow
+- skills/image-designer/ - SA1: Design ảnh
+- skills/n8n-workflow-engineering/ - n8n workflows
+- skills/fullstack-mkt/ - 16 MKT skills (bonus)
+
+## Baserow Tables (CREATED MANUALLY)
+### Content Calendar
 | Field | Type |
 |-------|------|
 | Ngày đăng | date |
@@ -134,18 +142,17 @@ AI Marketing Agent cho spa/beauty equipment - ${BUSINESS_NAME}
 | Trạng thái | single_select |
 | Ghi chú | text |
 
-### Product Database (ID: {PRODUCT_TABLE_ID})
+### Product Database
 | Field | Type |
 |-------|------|
 | Tên thiết bị | text |
 | Link ảnh | url |
 | Link sản phẩm | url |
 
-## 6. Troubleshooting
-| Issue | Solution |
-|-------|----------|
-| FB token expired | Get new from Graph API Explorer |
-| Baserow 404 | Use api.baserow.io (no /v1/) |
+## Workflow
+1. Content (SA3) → Import Baserow
+2. Design (n8n) → Webhook → Update Baserow
+3. Post (SA4) → Facebook Schedule
 EOF
 log "PLAYBOOK.md OK"
 
@@ -159,20 +166,33 @@ else
     error "FAILED"
 fi
 
+# Summary
+echo ""
+echo "============================================"
+echo "SKILLS ĐÃ COPY:"
+for skill in $SKILLS_TO_COPY; do
+    if [ -d "$SKILLS_DIR/$skill" ]; then
+        echo "  ✅ $skill"
+    fi
+done
+
 echo "
 ╔═══════════════════════════════════════════════════════════════╗
 ║                 ✅ SETUP HOÀN THÀNH                          ║
 ╠═══════════════════════════════════════════════════════════════╣
-║  FILES CREATED:                                               ║
-║    - ~/.openclaw/workspace/TOOLS.md                          ║
-║    - ~/.openclaw/workspace/PLAYBOOK.md                       ║
-║    - ~/.openclaw/workspace/skills/fullstack-mkt-skills/     ║
-║    - ~/.openclaw/workspace/skills/facebook-page-manager/    ║
-║      tokens.json                                             ║
+║  SKILLS:                                                     ║
+$(for skill in $SKILLS_TO_COPY; do echo "║    - $skill"; done)
+║    - fullstack-mkt                                           ║
 ╠═══════════════════════════════════════════════════════════════╣
-║  NEXT STEPS:                                                  ║
-║    1. Create Baserow tables MANUALLY on Baserow UI           ║
+║  FILES:                                                      ║
+║    - ~/.openclaw/workspace/TOOLS.md                         ║
+║    - ~/.openclaw/workspace/PLAYBOOK.md                      ║
+║    - ~/.openclaw/workspace/skills/facebook-page-manager/    ║
+║      tokens.json                                            ║
+╠═══════════════════════════════════════════════════════════════╣
+║  NEXT STEPS:                                                 ║
+║    1. Create Baserow tables MANUALLY on Baserow UI         ║
 ║    2. Import n8n workflow (SA Designer Fixed)               ║
-║    3. Test full workflow                                     ║
+║    3. Test full workflow                                    ║
 ╚═══════════════════════════════════════════════════════════════╝
 "
