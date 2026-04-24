@@ -24,22 +24,23 @@ node ~/.openclaw/workspace/setup-tool/setup.js
 
 ---
 
-## Cấu trúc đầy đủ sau Setup
+## Cấu trúc sau Setup
 
 ```
 ~/.openclaw/workspace/
 ├── setup-tool/                    # Tool này
-├── skills/                        # Skills có sẵn trong workspace
-│   ├── content-writer/            # SA3: Viết content Facebook
-│   ├── marketing-planner/          # SA2: Lên kế hoạch content
-│   ├── facebook-page-manager/      # SA4: Đăng bài Facebook
-│   ├── baserow-integration/       # Kết nối Baserow
-│   ├── social-media-manager/      # Quản lý đa kênh
-│   ├── image-designer/            # SA1: Design ảnh (backup)
-│   ├── n8n-workflow-engineering/ # n8n workflows
-│   └── fullstack-mkt/             # 16 MKT files (bonus)
+├── skills/                        # Skills từ workspace hiện tại
+│   ├── content-writer/            # ✅ OpenClaw skill (SKILL.md)
+│   ├── marketing-planner/          # ✅ OpenClaw skill (SKILL.md)
+│   ├── facebook-page-manager/      # ✅ OpenClaw skill (SKILL.md)
+│   ├── baserow-integration/       # ✅ OpenClaw skill (SKILL.md)
+│   ├── social-media-manager/       # ✅ OpenClaw skill (SKILL.md)
+│   ├── image-designer/             # ✅ OpenClaw skill (SKILL.md)
+│   ├── n8n-workflow-engineering/   # ✅ OpenClaw skill (SKILL.md)
+│   └── fullstack-mkt/             # 📚 MKT knowledge files (bonus)
 │       ├── 00-ke-hoach-mkt.md
 │       ├── 01-lich-noi-dung.md
+│       ├── 02-brief-chien-dich.md
 │       ├── ...
 │       ├── 15-social-listening.md
 │       ├── agents/
@@ -47,71 +48,44 @@ node ~/.openclaw/workspace/setup-tool/setup.js
 │       └── workflows/
 ├── memory/                        # Ghi chú hàng ngày
 ├── TOOLS.md                       # Credentials
-├── PLAYBOOK.md                   # System documentation
-└── ORCHESTRATION.md              # Agent orchestration
+└── PLAYBOOK.md                   # System documentation
 ```
 
 ---
 
-## Skills có sẵn
+## ⚠️ QUAN TRỌNG: Skills vs MKT Knowledge
 
-### 1. content-writer (SA3)
-- **Mục đích:** Viết content Facebook 500-800 từ
-- **Skill file:** `skills/content-writer/SKILL.md`
-- **Input:** Brief sản phẩm
-- **Output:** Content file + import vào Baserow
+### OpenClaw Skills (trong `skills/` folder)
+ĐÂY LÀ SKILLS THẬT SỰ - OpenClaw dùng trực tiếp:
+- `skills/content-writer/SKILL.md` - Viết content
+- `skills/marketing-planner/SKILL.md` - Lên kế hoạch
+- `skills/facebook-page-manager/SKILL.md` - Đăng Facebook
+- `skills/baserow-integration/SKILL.md` - Kết nối Baserow
+- `skills/image-designer/SKILL.md` - Design ảnh
+- `skills/n8n-workflow-engineering/SKILL.md` - n8n workflows
 
-### 2. marketing-planner (SA2)
-- **Mục đích:** Lên lịch content hàng tuần
-- **Skill file:** `skills/marketing-planner/SKILL.md`
-- **Input:** Product DB (Baserow)
-- **Output:** Brief cho từng bài
-
-### 3. facebook-page-manager (SA4)
-- **Mục đích:** Đăng bài + schedule lên Facebook
-- **Skill file:** `skills/facebook-page-manager/SKILL.md`
-- **Input:** Content + image URL
-- **Output:** Post ID từ Facebook
-
-### 4. baserow-integration
-- **Mục đích:** CRUD operations trên Baserow
-- **Skill file:** `skills/baserow-integration/SKILL.md`
-- **Input:** Table ID + row data
-- **Output:** Updated rows
-
-### 5. image-designer (SA1 - backup)
-- **Mục đích:** Design ảnh poster
-- **Skill file:** `skills/image-designer/SKILL.md`
-- **Input:** Product image + content
-- **Output:** Designed image URL
+### MKT Knowledge Files (trong `skills/fullstack-mkt/`)
+ĐÂY LÀ TÀI LIỆU THAM KHẢO - không phải OpenClaw skills:
+- 16 file `.md` - Kiến thức marketing
+- `agents/` - Sub-agent prompts
+- `references/` - Tài liệu tham khảo
+- `workflows/` - Workflow examples
 
 ---
 
-## Bonus: fullstack-mkt (16 files)
+## Setup cho khách mới
 
-```
-skills/fullstack-mkt/
-├── 00-ke-hoach-mkt.md      # Kế hoạch marketing
-├── 01-lich-noi-dung.md    # Lịch nội dung
-├── 02-brief-chien-dich.md # Brief chiến dịch
-├── 03-danh-gia-hieu-suat.md
-├── 04-script-video.md     # Script video
-├── 05-copy-quang-cao.md   # Copy quảng cáo
-├── 06-brief-ugc-egc.md
-├── 07-bao-cao-marketing.md
-├── 08-nghien-cuu-doi-thu.md
-├── 09-insight-khach-hang.md
-├── 10-tinh-kpi-nguoc.md
-├── 11-thiet-lap-kenh.md
-├── 12-brief-landing-page.md
-├── 13-phan-tich-du-lieu.md
-├── 14-email-marketing.md
-├── 15-social-listening.md
-└── agents/               # Sub-agents
-    ├── mkt-strategist.md
-    ├── performance-analyst.md
-    ├── content-producer.md
-    └── channel-operator.md
+```bash
+# 1. Chạy setup script
+bash setup.sh
+
+# 2. Script sẽ:
+#    - Copy 7 OpenClaw skills từ workspace vào ~/.openclaw/workspace/skills/
+#    - Clone fullstack-mkt repo (MKT knowledge) vào skills/fullstack-mkt/
+
+# 3. Hướng dẫn khách tạo Baserow tables TAY
+
+# 4. Xong!
 ```
 
 ---
@@ -120,7 +94,7 @@ skills/fullstack-mkt/
 
 Baserow **KHÔNG cho phép tạo table qua API**.
 
-### Content Calendar Table (ID: {CONTENT_TABLE_ID})
+### Content Calendar Table
 | Field | Type |
 |-------|------|
 | Ngày đăng | date |
@@ -131,7 +105,7 @@ Baserow **KHÔNG cho phép tạo table qua API**.
 | Trạng thái | single_select |
 | Ghi chú | text |
 
-### Product Database Table (ID: {PRODUCT_TABLE_ID})
+### Product Database Table
 | Field | Type |
 |-------|------|
 | Tên thiết bị | text |
@@ -146,7 +120,6 @@ Baserow **KHÔNG cho phép tạo table qua API**.
 GET    https://api.baserow.io/api/database/rows/table/{table_id}/?user_field_names=true
 POST   https://api.baserow.io/api/database/rows/table/{table_id}/
 PATCH  https://api.baserow.io/api/database/rows/table/{table_id}/{row_id}/
-DELETE https://api.baserow.io/api/database/rows/table/{table_id}/{row_id}/
 ```
 
 ---
@@ -172,31 +145,15 @@ DELETE https://api.baserow.io/api/database/rows/table/{table_id}/{row_id}/
 ```
 1. Spawn SA3 (content-writer)
    → Viết N bài content
-   → Import vào Baserow Table 916632
+   → Import vào Baserow
 
 2. Gọi n8n webhook (SA Designer)
    → Design ảnh
    → Update "Link ảnh đã thiết kế" vào Baserow
 
 3. Spawn SA4 (facebook-page-manager)
-   → Lấy content + ảnh từ Baserow
    → Schedule post (09:00 VN)
    → Update "Trạng thái" = Done
-```
-
----
-
-## Setup cho khách mới
-
-```bash
-# 1. Chạy setup script
-bash setup.sh
-
-# 2. Skills được copy tự động vào ~/.openclaw/workspace/skills/
-
-# 3. Hướng dẫn khách tạo Baserow tables TAY
-
-# 4. Xong!
 ```
 
 ---
@@ -207,7 +164,7 @@ bash setup.sh
 |-------|----------|
 | FB token expired | Get new from Graph API Explorer |
 | Baserow 404 | Use api.baserow.io (no /v1/) |
-| Skills not found | Check skills/ folder exists |
+| Skills not found | Chạy lại setup script |
 | n8n webhook timeout | Dùng production URL |
 
 ---
