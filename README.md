@@ -29,23 +29,25 @@ node ~/.openclaw/workspace/setup-tool/setup.js
 ```
 ~/.openclaw/workspace/
 ├── setup-tool/                    # Tool này
-├── skills/                        # Skills từ workspace hiện tại
-│   ├── content-writer/            # ✅ OpenClaw skill (SKILL.md)
-│   ├── marketing-planner/          # ✅ OpenClaw skill (SKILL.md)
-│   ├── facebook-page-manager/      # ✅ OpenClaw skill (SKILL.md)
-│   ├── baserow-integration/       # ✅ OpenClaw skill (SKILL.md)
-│   ├── social-media-manager/       # ✅ OpenClaw skill (SKILL.md)
-│   ├── image-designer/             # ✅ OpenClaw skill (SKILL.md)
-│   ├── n8n-workflow-engineering/   # ✅ OpenClaw skill (SKILL.md)
-│   └── fullstack-mkt/             # 📚 MKT knowledge files (bonus)
-│       ├── 00-ke-hoach-mkt.md
-│       ├── 01-lich-noi-dung.md
-│       ├── 02-brief-chien-dich.md
-│       ├── ...
-│       ├── 15-social-listening.md
-│       ├── agents/
-│       ├── references/
-│       └── workflows/
+├── skills/                        # OpenClaw Skills (từ repo)
+│   ├── content-writer/             # ✅ SA3: Viết content Facebook
+│   │   └── SKILL.md
+│   ├── marketing-planner/          # ✅ SA2: Lên kế hoạch content
+│   │   └── SKILL.md
+│   ├── facebook-page-manager/      # ✅ SA4: Đăng bài Facebook
+│   │   └── SKILL.md
+│   ├── baserow-integration/       # ✅ Kết nối Baserow
+│   │   └── SKILL.md
+│   ├── image-designer/             # ✅ SA1: Design ảnh
+│   │   └── SKILL.md
+│   ├── social-media-manager/       # ✅ Quản lý đa kênh
+│   │   └── SKILL.md
+│   └── n8n-workflow-engineering/   # ✅ n8n workflows
+│       └── SKILL.md
+├── fullstack-mkt/                # 📚 MKT Knowledge (bonus)
+│   ├── 00-ke-hoach-mkt.md
+│   ├── 01-lich-noi-dung.md
+│   └── ...
 ├── memory/                        # Ghi chú hàng ngày
 ├── TOOLS.md                       # Credentials
 └── PLAYBOOK.md                   # System documentation
@@ -53,40 +55,29 @@ node ~/.openclaw/workspace/setup-tool/setup.js
 
 ---
 
-## ⚠️ QUAN TRỌNG: Skills vs MKT Knowledge
+## OpenClaw Skills (từ repo - ✅ DÙNG ĐƯỢC)
 
-### OpenClaw Skills (trong `skills/` folder)
-ĐÂY LÀ SKILLS THẬT SỰ - OpenClaw dùng trực tiếp:
-- `skills/content-writer/SKILL.md` - Viết content
-- `skills/marketing-planner/SKILL.md` - Lên kế hoạch
-- `skills/facebook-page-manager/SKILL.md` - Đăng Facebook
-- `skills/baserow-integration/SKILL.md` - Kết nối Baserow
-- `skills/image-designer/SKILL.md` - Design ảnh
-- `skills/n8n-workflow-engineering/SKILL.md` - n8n workflows
-
-### MKT Knowledge Files (trong `skills/fullstack-mkt/`)
-ĐÂY LÀ TÀI LIỆU THAM KHẢO - không phải OpenClaw skills:
-- 16 file `.md` - Kiến thức marketing
-- `agents/` - Sub-agent prompts
-- `references/` - Tài liệu tham khảo
-- `workflows/` - Workflow examples
+| Skill | Role | File |
+|-------|------|------|
+| content-writer | SA3: Viết content Facebook | `SKILL.md` |
+| marketing-planner | SA2: Lên kế hoạch content | `SKILL.md` |
+| facebook-page-manager | SA4: Đăng bài Facebook | `SKILL.md` |
+| baserow-integration | Kết nối Baserow CRUD | `SKILL.md` |
+| image-designer | SA1: Design ảnh | `SKILL.md` |
+| social-media-manager | Quản lý đa kênh | `SKILL.md` |
+| n8n-workflow-engineering | n8n workflows | `SKILL.md` |
 
 ---
 
-## Setup cho khách mới
+## MKT Knowledge (bonus - 📖 Tham khảo)
 
-```bash
-# 1. Chạy setup script
-bash setup.sh
-
-# 2. Script sẽ:
-#    - Copy 7 OpenClaw skills từ workspace vào ~/.openclaw/workspace/skills/
-#    - Clone fullstack-mkt repo (MKT knowledge) vào skills/fullstack-mkt/
-
-# 3. Hướng dẫn khách tạo Baserow tables TAY
-
-# 4. Xong!
-```
+| File | Mô tả |
+|------|-------|
+| 00-ke-hoach-mkt.md | Kế hoạch marketing |
+| 01-lich-noi-dung.md | Lịch nội dung |
+| 02-brief-chien-dich.md | Brief chiến dịch |
+| 03-danh-gia-hieu-suat.md | Đánh giá hiệu suất |
+| ... | ... |
 
 ---
 
@@ -114,32 +105,6 @@ Baserow **KHÔNG cho phép tạo table qua API**.
 
 ---
 
-## Baserow API Endpoints
-
-```
-GET    https://api.baserow.io/api/database/rows/table/{table_id}/?user_field_names=true
-POST   https://api.baserow.io/api/database/rows/table/{table_id}/
-PATCH  https://api.baserow.io/api/database/rows/table/{table_id}/{row_id}/
-```
-
----
-
-## n8n Workflow
-
-**Webhook URL:** `{N8N_URL}/webhook/{WEBHOOK_ID}`
-
-**Payload format:**
-```json
-{
-  "row_id": 297,
-  "baserow_row_id": 297,
-  "content": "Nội dung bài viết...",
-  "product_image_url": "https://..."
-}
-```
-
----
-
 ## Workflow hàng ngày
 
 ```
@@ -158,14 +123,19 @@ PATCH  https://api.baserow.io/api/database/rows/table/{table_id}/{row_id}/
 
 ---
 
-## Troubleshooting
+## Setup cho khách mới
 
-| Issue | Solution |
-|-------|----------|
-| FB token expired | Get new from Graph API Explorer |
-| Baserow 404 | Use api.baserow.io (no /v1/) |
-| Skills not found | Chạy lại setup script |
-| n8n webhook timeout | Dùng production URL |
+```bash
+# 1. Clone repo
+git clone https://github.com/minhnv0807/3d-vietnam-mkt-tool.git ~/.openclaw/workspace/setup-tool
+
+# 2. Chạy setup
+bash ~/.openclaw/workspace/setup-tool/setup.sh
+
+# 3. Tạo Baserow tables TAY
+
+# 4. Xong!
+```
 
 ---
 
