@@ -1,167 +1,64 @@
 #!/usr/bin/env node
-/**
- * 3D Vietnam Marketing System - Quick Setup Tool
- * Run: node setup.js
- * 
- * Setup n8n + Facebook + OpenClaw Skills
- * Skills are included in repo, copied to workspace on setup
- */
 
-import { createInterface } from 'readline';
-import { execSync } from 'child_process';
-import { existsSync, writeFileSync, mkdirSync, cpSync } from 'fs';
-import { homedir } from 'os';
-import path from 'path';
+// HQ Design Marketing System - Setup Script
+const { ask } = require('Input');
 
-const rl = createInterface({ input: process.stdin, output: process.stdout });
-const ask = (q) => new Promise((r) => rl.question(q, r));
-const log = (msg, type = 'info') => {
-  const icons = { info: 'ℹ️', success: '✅', error: '❌', step: '🔧' };
-  console.log(`${icons[type]} ${msg}`);
-};
-const run = (cmd) => { try { return execSync(cmd, { encoding: 'utf8', stdio: 'pipe' }).trim(); } catch (e) { return null; } };
+const REPO = 'Egggy1998/hq-design-mkt-tool';
 
 async function main() {
-  console.log(`
-╔═══════════════════════════════════════════════════════════════╗
-║     3D VIETNAM MARKETING SYSTEM - SETUP TOOL                  ║
-║     Setup n8n + Facebook + OpenClaw Skills                    ║
-╚═══════════════════════════════════════════════════════════════╝
-  `);
+    print('╔══════════════════════════════════════════╗');
+    print('║   HQ Design Marketing System Setup     ║');
+    print('╚══════════════════════════════════════════╝');
+    print('');
 
-  console.log('\n📝 NHẬP THÔNG TIN CẦN THIẾT\n');
-  const N8N_URL = await ask('1. n8n Instance URL: ');
-  const N8N_WEBHOOK_ID = await ask('2. n8n Webhook ID: ');
-  const FB_PAGE_ID = await ask('3. Facebook Page ID: ');
-  const FB_PAGE_TOKEN = await ask('4. Facebook Page Token: ');
-  const BUSINESS_NAME = await ask('5. Tên Business: ');
+    // Input
+    const N8N_URL = await ask('1. n8n Instance URL: ');
+    const N8N_WEBHOOK_ID = await ask('2. n8n Webhook ID: ');
+    const FB_PAGE_ID = await ask('3. Facebook Page ID: ');
+    const FB_PAGE_TOKEN = await ask('4. Facebook Page Token: ');
+    const BUSINESS_NAME = await ask('5. Tên Business: ');
 
-  const workspace = path.join(homedir(), '.openclaw', 'workspace');
-  const skillsDir = path.join(workspace, 'skills');
-  const scriptDir = path.join(homedir(), '.openclaw', 'workspace', 'setup-tool');
+    print('');
+    print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    print('📋 Kiểm tra thông tin:');
+    print(`   n8n URL: ${N8N_URL}`);
+    print(`   Webhook ID: ${N8N_WEBHOOK_ID}`);
+    print(`   Page ID: ${FB_PAGE_ID}`);
+    print(`   Business: ${BUSINESS_NAME}`);
+    print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    print('');
 
-  log('\n📁 Tạo thư mục...', 'step');
-  mkdirSync(path.join(workspace, 'memory'), { recursive: true });
-  mkdirSync(skillsDir, { recursive: true });
+    // Clone repo
+    log('📥 Clone repo...', 'step');
+    run('git clone https://github.com/${REPO}.git setup-tool-temp', { continue: true });
+    run('mv setup-tool-temp/setup-tool ~/.openclaw/workspace/', { continue: true });
+    run('rm -rf setup-tool-temp');
+    log('Clone OK', 'success');
 
-  // Copy OpenClaw Skills từ repo
-  log('\n📋 Copy OpenClaw Skills...', 'step');
-  const skillsToCopy = [
-    'content-writer',
-    'marketing-planner', 
-    'facebook-page-manager',
-    'baserow-integration',
-    'image-designer',
-    'social-media-manager',
-    'n8n-workflow-engineering'
-  ];
-
-  console.log('\nOpenClaw Skills:');
-  for (const skill of skillsToCopy) {
-    const src = path.join(scriptDir, 'skills', skill);
-    const dest = path.join(skillsDir, skill);
-    
-    if (existsSync(src)) {
-      if (!existsSync(dest)) {
-        cpSync(src, dest);
-        log(`Copied: ${skill}`, 'success');
-      } else {
-        log(`Skill đã tồn tại: ${skill}`, 'info');
-      }
-    } else {
-      log(`Skill không tìm thấy: ${skill}`, 'error');
+    // Copy skills
+    log('📂 Copy skills...', 'step');
+    const skillsDir = '~/.openclaw/workspace/skills';
+    for (const skill of ['content-writer', 'marketing-planner', 'facebook-page-manager', 'baserow-integration', 'image-designer', 'social-media-manager', 'n8n-workflow-engineering']) {
+        run('cp -r setup-tool/' + skill + ' ' + skillsDir + '/', { continue: true });
+        log(skill + ' OK', 'success');
     }
-  }
 
-  // Clone fullstack-mkt repo (BONUS)
-  log('\n📦 Clone fullstack-mkt repo (BONUS)...', 'step');
-  if (!existsSync(path.join(skillsDir, 'fullstack-mkt'))) {
-    run(`git clone https://github.com/minhnv0807/fullstack-mkt-skills.git "${skillsDir}/fullstack-mkt"`);
-    log('fullstack-mkt repo cloned', 'success');
-  } else {
-    log('fullstack-mkt repo đã tồn tại', 'info');
-  }
+    // Create tokens.json (local only)
+    log('🔑 Tạo tokens.json...', 'step');
+    const tokensDir = skillsDir + '/facebook-page-manager';
+    writeFileSync(tokensDir + '/tokens.json', JSON.stringify({
+        pages: {
+            [FB_PAGE_ID]: { name: BUSINESS_NAME, token: FB_PAGE_TOKEN }
+        }
+    }, null, 2));
+    log('tokens.json OK (local only)', 'success');
 
-  // Create TOOLS.md
-  log('\n📝 Tạo TOOLS.md...', 'step');
-  writeFileSync(path.join(workspace, 'TOOLS.md'), `# TOOLS.md - ${BUSINESS_NAME}
-
-## n8n
-- **Instance**: ${N8N_URL}
-- **Webhook ID**: ${N8N_WEBHOOK_ID}
-- **Webhook URL**: ${N8N_URL}/webhook/${N8N_WEBHOOK_ID}
-
-## Facebook
-- **Page ID**: ${FB_PAGE_ID}
-- **Token**: ${FB_PAGE_TOKEN}
-`);
-  log('TOOLS.md OK', 'success');
-
-  // Create tokens.json
-  log('\n🔑 Tạo tokens.json...', 'step');
-  mkdirSync(path.join(skillsDir, 'facebook-page-manager'), { recursive: true });
-  writeFileSync(path.join(skillsDir, 'facebook-page-manager', 'tokens.json'),
-    JSON.stringify({ pages: { [FB_PAGE_ID]: { name: BUSINESS_NAME, token: FB_PAGE_TOKEN } } }, null, 2));
-  log('tokens.json OK', 'success');
-
-  // Create PLAYBOOK.md
-  log('\n📖 Tạo PLAYBOOK.md...', 'step');
-  writeFileSync(path.join(workspace, 'PLAYBOOK.md'), `# CLAW MARKETING SYSTEM - Playbook
-
-## ${BUSINESS_NAME}
-
-## n8n Webhook
-- URL: ${N8N_URL}/webhook/${N8N_WEBHOOK_ID}
-
-## Facebook
-- Page ID: ${FB_PAGE_ID}
-
-## OpenClaw Skills
-- content-writer - SA3: Viết content Facebook
-- marketing-planner - SA2: Lên kế hoạch content
-- facebook-page-manager - SA4: Đăng bài Facebook
-- baserow-integration - Kết nối Baserow
-- image-designer - SA1: Design ảnh
-- social-media-manager - Quản lý đa kênh
-- n8n-workflow-engineering - n8n workflows
-
-## MKT Knowledge (bonus)
-- fullstack-mkt/ - 16 MKT knowledge files
-
-## Workflow
-1. Content (SA3) → Import Baserow
-2. Design (n8n) → Webhook → Update Baserow
-3. Post (SA4) → Facebook Schedule
-`);
-  log('PLAYBOOK.md OK', 'success');
-
-  // Test Facebook
-  log('\n🔍 Test Facebook...', 'step');
-  const fbOk = run(`curl -s "https://graph.facebook.com/v19.0/${FB_PAGE_ID}?access_token=${FB_PAGE_TOKEN}" | grep -q "name"`);
-  log(`Facebook: ${fbOk ? 'OK' : 'FAILED'}`, fbOk ? 'success' : 'error');
-
-  // Summary
-  console.log('\n============================================');
-  console.log('OPENCLAW SKILLS:');
-  for (const skill of skillsToCopy) {
-    const dest = path.join(skillsDir, skill);
-    console.log(`  ${existsSync(dest) ? '✅' : '❌'} ${skill}`);
-  }
-
-  console.log('\nMKT KNOWLEDGE:');
-  console.log(`  ${existsSync(path.join(skillsDir, 'fullstack-mkt')) ? '✅' : '❌'} fullstack-mkt/`);
-
-  console.log(`
-╔═══════════════════════════════════════════════════════════════╗
-║                 ✅ SETUP HOÀN THÀNH                           ║
-╠═══════════════════════════════════════════════════════════════╣
-║  FILES: TOOLS.md, PLAYBOOK.md, tokens.json                     ║
-╠═══════════════════════════════════════════════════════════════╣
-║  NEXT: Create Baserow tables MANUALLY, then test workflow  ║
-╚═══════════════════════════════════════════════════════════════╝
-`);
-
-  rl.close();
+    print('');
+    print('✅ Setup hoàn tất!');
+    print('');
+    print('📁 Files tạo local (KHÔNG push lên git):');
+    print('   - ~/.openclaw/workspace/skills/');
+    print('   - ~/.openclaw/workspace/facebook-page-manager/tokens.json');
 }
 
-main().catch(console.error);
+main();
