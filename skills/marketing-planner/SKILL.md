@@ -79,7 +79,7 @@ SA2: Marketing Planner
 
 ```bash
 curl -s "https://gateway.maton.ai/baserow/api/database/rows/table/916643/?user_field_names=true&size=50" \
-  -H "Authorization: Bearer Q3nQpzh8Do3144PTyz2e6bUW3pmCdLDQ9PY02kBF_ff6FuhFCQk_8Ya8q-eCmj-SNr6WVJWOGVxmoX0S-BzOhxSDStoLqpeJvFI"
+  -H "Authorization: Bearer YOUR_MATON_TOKEN"
 ```
 
 **Fields cần đọc:**
@@ -96,7 +96,7 @@ curl -s "https://gateway.maton.ai/baserow/api/database/rows/table/916643/?user_f
 
 ```bash
 curl -s "https://gateway.maton.ai/baserow/api/database/rows/table/916632/?user_field_names=true&size=100" \
-  -H "Authorization: Bearer Q3nQpzh8Do3144PTyz2e6bUW3pmCdLDQ9PY02kBF_ff6FuhFCQk_8Ya8q-eCmj-SNr6WVJWOGVxmoX0S-BzOhxSDStoLqpeJvFI"
+  -H "Authorization: Bearer YOUR_MATON_TOKEN"
 ```
 
 **Fields cần đọc:**
@@ -171,7 +171,7 @@ curl -s "https://gateway.maton.ai/baserow/api/database/rows/table/916632/?user_f
 ```bash
 # Tạo row mới
 curl -s -X POST "https://gateway.maton.ai/baserow/api/database/rows/table/916632/?user_field_names=true" \
-  -H "Authorization: Bearer Q3nQpzh8Do3144PTyz2e6bUW3pmCdLDQ9PY02kBF_ff6FuhFCQk_8Ya8q-eCmj-SNr6WVJWOGVxmoX0S-BzOhxSDStoLqpeJvFI" \
+  -H "Authorization: Bearer YOUR_MATON_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "field_7952819": "Triệt lông không đau – Diode Laser 2026",
@@ -227,8 +227,9 @@ curl -s -X POST "https://gateway.maton.ai/baserow/api/database/rows/table/916632
 ## Baserow Credentials - Via Maton Only
 
 - **Connection**: Maton gateway (`https://gateway.maton.ai/baserow/`)
-- **Maton Token**: `Q3nQpzh8Do3144PTyz2e6bUW3pmCdLDQ9PY02kBF_ff6FuhFCQk_8Ya8q-eCmj-SNr6WVJWOGVxmoX0S-BzOhxSDStoLqpeJvFI`
+- **Maton Token**: `YOUR_MATON_TOKEN`
 - **Product Table**: 916643
 - **Calendar Table**: 916632
 - **API Format**: `/api/database/rows/table/{table_id}/` (KHÔNG có /v1/)
 - **Auth Header**: `Authorization: Bearer {MATON_TOKEN}`
+
