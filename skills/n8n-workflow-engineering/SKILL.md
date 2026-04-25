@@ -76,58 +76,43 @@ Content-Type: application/json
 
 ## 🚀 Cách Tự Set Up Cloudflare Worker
 
-### Bước 1: Chuẩn bị
+### Bước 1: Clone Worker Repo
 
 ```bash
-# Cài Wrangler CLI
+git clone https://github.com/Egggy1998/hq-design-worker.git
+cd hq-design-worker
+```
+
+### Bước 2: Deploy
+
+**Cách 1: GitHub Integration (khuyến nghị)**
+1. Cloudflare Dashboard → Workers & Pages
+2. "Create a Worker" → "Deploy from GitHub"
+3. Connect repo `Egggy1998/hq-design-worker`
+4. Done!
+
+**Cách 2: Wrangler CLI**
+```bash
 npm install -g wrangler
-
-# Login Cloudflare
 wrangler login
-```
-
-### Bước 2: Clone Worker Repo
-
-```bash
-# Clone repo
-git clone https://github.com/Egggy1998/3d-vietnam-worker.git
-cd 3d-vietnam-worker
-```
-
-### Bước 3: Deploy
-
-```bash
-# Deploy lên Cloudflare
 wrangler deploy
 ```
 
-### Bước 4: Set Environment Variables
+### Bước 3: Set Environment Variables
 
-Trên Cloudflare Dashboard:
-1. Workers & Pages → Chọn `3d-vietnam-worker`
-2. Settings → Variables
-3. Add variables:
+Trên Cloudflare Dashboard → Workers & Pages → `hq-design-worker` → Settings → Variables:
 
 | Variable | Value |
 |----------|-------|
-| `N8N_WEBHOOK_URL` | `https://jqqpar.ezn8n.com` |
-| `N8N_WEBHOOK_ID` | `c662501d-1d03-48c3-9bc2-4ad0e8e2b2a2` |
-| `BASEROW_TABLE_ID` | `916632` |
+| `N8N_WEBHOOK_URL` | URL n8n instance của bạn |
+| `N8N_WEBHOOK_ID` | Webhook ID từ n8n workflow |
+| `BASEROW_TABLE_ID` | Table ID từ Baserow |
 
-### Bước 5: Set Secret
+### Bước 4: Set Secrets
 
 ```bash
-# Set Baserow token (sẽ được bảo mật)
 wrangler secret put BASEROW_TOKEN
-# Nhập: k3h0ecJo2awlsDTc2cctP1H5EhNMs4yo
-```
-
-### Bước 6: Lấy Worker URL
-
-```bash
-# Xem Worker URL
-wrangler subdomain
-# Kết quả: https://3d-vietnam-worker.YOUR_SUBDOMAIN.workers.dev
+# Nhập Baserow API token của bạn
 ```
 
 ---
@@ -162,38 +147,6 @@ curl -X POST "https://YOUR_SUBDOMAIN.workers.dev" \
   }'
 ```
 
-### Bước 3 — Xử lý response
-
-```javascript
-// Response thành công
-if (response.success) {
-  // Cloudflare Worker đã forward đến n8n
-  console.log("Design triggered:", response.n8n_status);
-  // → Chuyển sang theo dõi Baserow
-} else {
-  // Xử lý lỗi
-  console.error("Failed:", response.error);
-}
-```
-
----
-
-## 🔄 Cloudflare Worker Flow
-
-```
-Cloudflare Worker
-    ↓ Validate request
-    ↓ Forward to n8n webhook
-    ↓ Update Baserow status = "Designing"
-    ↓ Return success response
-```
-
-### Worker Features
-- ✅ 100% uptime (edge network)
-- ✅ Auto-retry on n8n failure
-- ✅ CORS enabled
-- ✅ Request validation
-
 ---
 
 ## n8n Workflow (SA Designer)
@@ -217,8 +170,6 @@ Done!
 
 ## Error Handling
 
-### Worker Errors
-
 | Error | Xử lý |
 |-------|--------|
 | Invalid JSON | Log payload, return 400 |
@@ -226,52 +177,9 @@ Done!
 | n8n timeout | Worker auto-retry |
 | n8n not responding | Log and continue |
 
-### Retry Logic
-
-Worker sẽ retry n8n request tối đa 3 lần nếu fail.
-
----
-
-## Test Webhook
-
-```bash
-# Test với sample data
-curl -X POST "https://YOUR_SUBDOMAIN.workers.dev" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "row_id": 999,
-    "baserow_row_id": 999,
-    "content": "Test content",
-    "product_image_url": "https://example.com/test.jpg"
-  }'
-```
-
----
-
-## Environment Variables (Cloudflare)
-
-Được config trên Cloudflare Dashboard:
-
-| Variable | Value |
-|----------|-------|
-| `N8N_WEBHOOK_URL` | `https://jqqpar.ezn8n.com` |
-| `N8N_WEBHOOK_ID` | `c662501d-1d03-48c3-9bc2-4ad0e8e2b2a2` |
-| `BASEROW_TABLE_ID` | `916632` |
-
-**Secret (cần set riêng):**
-- `BASEROW_TOKEN` | `k3h0ecJo2awlsDTc2cctP1H5EhNMs4yo` (set qua `wrangler secret put`)
-
----
-
-## Dependencies
-
-- `content-writer/SKILL.md` — SA3 gọi Cloudflare Worker
-- `baserow-integration/SKILL.md` — Update Baserow fields
-
 ---
 
 ## 📚 Tham Khảo
 
 - Cloudflare Workers Docs: https://developers.cloudflare.com/workers/
-- Wrangler CLI: https://developers.cloudflare.com/workers/wrangler/
-- Worker Repo: https://github.com/Egggy1998/3d-vietnam-worker
+- Worker Repo: https://github.com/Egggy1998/hq-design-worker
