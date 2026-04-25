@@ -3,32 +3,251 @@ name: facebook-page
 description: Manage Facebook Pages via Meta Graph API. Post content (text, photos, links), schedule posts, list posts, manage comments (list/reply/hide/delete). Use when user wants to publish to Facebook Page, schedule posts, check Page posts, or handle comments.
 ---
 
-# Facebook Page
+# Facebook Page Manager
 
-Skill để quản lý Facebook Page qua Meta Graph API.
+## ⚠️ Security - Token Management
 
-## Chức năng
-- List các Page mà user quản lý
-- Đăng bài ngay (text, ảnh, link)
-- **Schedule bài đăng theo ngày giờ cụ thể**
-- List bài đăng của Page
-- List/reply/hide/delete comment
+**QUAN TRỌNG: KHÔNG push tokens thật lên GitHub!**
+
+- User Access Token → Nhập bởi user khi setup
+- Page Token Map → Lưu local, KHÔNG commit lên git
+- tokens.json → Luôn trong .gitignore
 
 ---
 
-## 📅 SCHEDULE POST ( Quan trọng! )
+## 🔄 Token Architecture (NEW)
 
-### Cách tính Timestamp
+```
+┌─────────────────────────────────────────────────┐
+│  User Access Token (YOUR_USER_TOKEN)            │
+│  ├── permissions: pages_show_list               │
+│  ├── permissions: pages_manage_posts             │
+│  └── expires: ~60 days (refresh được)          │
+│         ↓ /me/accounts                          │
+│  Page Token Map                                │
+│  {                                             │
+│    "PAGE_ID_1": "PAGE_TOKEN_1",                │
+│    "PAGE_ID_2": "PAGE_TOKEN_2"                  │
+│  }                                             │
+│         ↓                                       │
+│  Dùng Page Token đăng bài                       │
+└─────────────────────────────────────────────────┘
+```
 
-**Quy tắc:**
-- Timestamp phải là UNIX timestamp (giây, không phải mili giây)
-- Phải là THỜI GIAN TƯƠNG LAI (ít nhất 10 phút kể từ bây giờ)
-- Múi giờ: **09:00 VN = 02:00 UTC**
+### Tại sao phải refresh?
 
-### Công thức tính timestamp cho 09:00 VN
+| Token Type | Hết hạn | Refresh được? |
+|------------|---------|----------------|
+| User Access Token | ~60 ngày | ✅ Có |
+| Page Token | ~2 tháng | ❌ Không - phải lấy lại từ user token |
+
+**→ User token là "chìa khóa master" để lấy page tokens mới**
+
+---
+
+## 🚀 Setup (lần đầu)
+
+### Bước 1: Lấy User Access Token
+
+1. Vào [Meta Graph API Explorer](https://developers.facebook.com/tools/explorer/)
+2. Đăng nhập Facebook
+3. Chọn App đã tạo
+4. Cấp quyền: `pages_show_list`, `pages_manage_posts`, `pages_read_engagement`
+5. Click "Generate Token"
+6. **Lưu User Token** (sẽ dùng để refresh page tokens)
+
+### Bước 2: Setup script
 
 ```bash
-# Tính timestamp cho ngày cụ thể
+# Clone repo
+git clone https://github.com/Egggy1998/hq-design-mkt-tool.git
+cd hq-design-mkt-tool
+
+# Tạo .env
+cat > .env << 'EOF'
+USER_TOKEN=YOUR_USER_ACCESS_TOKEN_HERE
+APP_ID=YOUR_APP_ID
+APP_SECRET=YOUR_APP_SECRET
+EOF
+
+# Chạy refresh tokens
+node scripts/refresh-tokens.js
+```
+
+### Bước 3: Kiểm tra Page Tokens
+
+```bash
+node scripts/list-pages.js
+```
+
+Output:
+```json
+{
+  "pages": {
+    "1016972191499562": {
+      "name": "3D Laser Beauty",
+      "token": "EAAW..." // Auto-refresh khi hết hạn
+    }
+  }
+}
+```
+
+---
+
+## 📤 Schedule Post Flow
+
+### Bước 1: Refresh Page Tokens (trước khi đăng)
+
+```bash
+node scripts/refresh-tokens.js
+```
+
+Script sẽ:
+1. Dùng User Token gọi `GET /me/accounts`
+2. Lấy page tokens mới nhất
+3. Lưu vào `tokens.json`
+
+### Bước 2: Schedule Post
+
+```bash
+PAGE_ID="1016972191499562"
+TIMESTAMP=$(date -d "2026-04-25T02:00:00Z" +%s)
+
+curl -X POST "https://graph.facebook.com/v19.0/${PAGE_ID}/feed" \
+  -F "message=Nội dung bài viết..." \
+  -F "link=https://example.com/image.jpg" \
+  -F "published=false" \
+  -F "scheduled_publish_time=${TIMESTAMP}" \
+  -F "access_token=$(node -e "console.log(require('./tokens.json').pages['${PAGE_ID}'].token)")"
+```
+
+---
+
+## 📋 tokens.json Format (NEW)
+
+```json
+{
+  "user_token": "YOUR_USER_TOKEN",
+  "app_id": "YOUR_APP_ID",
+  "app_secret": "YOUR_APP_SECRET",
+  "pages": {
+    "PAGE_ID_1": {
+      "name": "Page Name 1",
+      "token": "EAAW...PAGE_TOKEN_1"
+    },
+    "PAGE_ID_2": {
+      "name": "Page Name 2",
+      "token": "EAAW...PAGE_TOKEN_2"
+    }
+  },
+  "last_refresh": "2026-04-25T08:00:00Z"
+}
+```
+
+**⚠️ File này KHÔNG push lên git!**
+
+---
+
+## 🔧 Scripts
+
+### refresh-tokens.js
+
+```javascript
+/**
+ * Refresh Page Tokens từ User Token
+ * Chạy định kỳ hoặc khi page token hết hạn
+ */
+
+const axios = require('axios');
+const fs = require('fs');
+const path = require('path');
+
+// Load .env
+require('dotenv').config();
+
+const USER_TOKEN = process.env.USER_TOKEN;
+const APP_ID = process.env.APP_ID;
+const APP_SECRET = process.env.APP_SECRET;
+
+async function refreshPageTokens() {
+  console.log('🔄 Refreshing page tokens...');
+  
+  try {
+    // 1. Lấy danh sách pages từ user token
+    const response = await axios.get('https://graph.facebook.com/v19.0/me/accounts', {
+      params: { access_token: USER_TOKEN }
+    });
+    
+    const pages = {};
+    for (const page of response.data.data) {
+      pages[page.id] = {
+        name: page.name,
+        token: page.access_token
+      };
+      console.log(`✅ Page: ${page.name} (${page.id})`);
+    }
+    
+    // 2. Lưu vào tokens.json
+    const tokensFile = path.join(__dirname, '..', 'tokens.json');
+    const tokensData = {
+      user_token: USER_TOKEN,
+      app_id: APP_ID,
+      app_secret: APP_SECRET,
+      pages: pages,
+      last_refresh: new Date().toISOString()
+    };
+    
+    fs.writeFileSync(tokensFile, JSON.stringify(tokensData, null, 2));
+    console.log('💾 Tokens saved to tokens.json');
+    
+    return pages;
+    
+  } catch (error) {
+    console.error('❌ Error refreshing tokens:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+// Chạy nếu được gọi trực tiếp
+if (require.main === module) {
+  refreshPageTokens()
+    .then(() => console.log('✅ Done!'))
+    .catch(err => { console.error(err); process.exit(1); });
+}
+
+module.exports = { refreshPageTokens };
+```
+
+### list-pages.js
+
+```javascript
+/**
+ * List các pages từ tokens.json
+ */
+
+const fs = require('fs');
+const path = require('path');
+
+const tokensFile = path.join(__dirname, '..', 'tokens.json');
+
+if (!fs.existsSync(tokensFile)) {
+  console.error('❌ tokens.json not found. Run refresh-tokens.js first!');
+  process.exit(1);
+}
+
+const tokens = JSON.parse(fs.readFileSync(tokensFile, 'utf8'));
+
+console.log('📋 Managed Pages:');
+console.log(JSON.stringify(tokens.pages, null, 2));
+console.log(`\nLast refresh: ${tokens.last_refresh}`);
+```
+
+---
+
+## ⏰ Timestamp Công thức
+
+```bash
+# 09:00 VN = 02:00 UTC
 date -d "YYYY-MM-DDT02:00:00Z" +%s
 
 # Ví dụ: 25/04/2026 09:00 VN
@@ -36,11 +255,10 @@ date -d "2026-04-25T02:00:00Z" +%s
 # Kết quả: 1777082400
 ```
 
-### Danh sách Timestamp thường dùng (09:00 VN)
+### Timestamps thường dùng (09:00 VN)
 
 | Ngày | Timestamp |
 |------|----------|
-| 2026-04-25 | 1777082400 |
 | 2026-04-26 | 1777168800 |
 | 2026-04-27 | 1777255200 |
 | 2026-04-28 | 1777341600 |
@@ -49,175 +267,64 @@ date -d "2026-04-25T02:00:00Z" +%s
 
 ---
 
-## 📤 Đăng bài SCHEDULED
-
-### Format cơ bản
+## 📤 Đăng bài Scheduled
 
 ```bash
-curl -X POST "https://graph.facebook.com/v19.0/{page_id}/feed" \
-  -F "message={content}" \
-  -F "link={image_url}" \
-  -F "published=false" \
-  -F "scheduled_publish_time={timestamp}" \
-  -F "access_token={page_token}"
-```
-
-### Ví dụ thực tế
-
-```bash
-PAGE_ID="1016972191499562"
-PAGE_TOKEN="EAAW...your_page_token"
-TIMESTAMP="1777082400"  # 25/04/2026 09:00 VN
+PAGE_ID="YOUR_PAGE_ID"
+TIMESTAMP="1777082400"
 
 curl -X POST "https://graph.facebook.com/v19.0/${PAGE_ID}/feed" \
-  -F "message=Chào mừng bạn đến với 3D Laser Beauty! ..." \
+  -F "message=Nội dung bài viết..." \
   -F "link=https://example.com/image.jpg" \
   -F "published=false" \
   -F "scheduled_publish_time=${TIMESTAMP}" \
-  -F "access_token=${PAGE_TOKEN}"
+  -F "access_token=PAGE_TOKEN_FROM_tokens.json"
 ```
 
 ### Response thành công
 
 ```json
 {
-  "id": "1016972191499562_122109040647023513",
+  "id": "PAGE_ID_POST_ID",
   "success": true
 }
 ```
 
-### Response lỗi thường gặp
+---
+
+## 🔐 Permissions cần thiết (User Token)
+
+- `pages_show_list` - Xem danh sách pages
+- `pages_manage_posts` - Quản lý bài đăng
+- `pages_read_engagement` - Đọc engagement
+
+---
+
+## ⚠️ Troubleshooting
 
 | Lỗi | Nguyên nhân | Giải pháp |
 |------|-------------|-----------|
-| `scheduled_publish_time is invalid` | Timestamp đã qua hoặc format sai | Dùng timestamp tương lai, tính lại bằng `date -d` |
-| `Unpublished posts must be posted as the page` | Token không phải Page Token | Lấy Page Token từ `/me/accounts` |
-| `(#200) does not have publish_actions` | Thiếu quyền | Kiểm tra token có `pages_manage_posts` |
+| `(#100) Invalid parameter` | Page token hết hạn | Chạy `refresh-tokens.js` |
+| `(#200) does not have publish_actions` | Thiếu permission | Cấp lại user token với đủ quyền |
+| `Invalid user access token` | User token hết hạn | Lấy user token mới từ Graph Explorer |
 
 ---
 
-## ⏰ Tính Timestamp cho bất kỳ ngày nào
+## 📁 Files
 
-```bash
-# Công thức: date -d "YYYY-MM-DDT02:00:00Z" +%s
-
-# Hôm nay + N ngày, 09:00 VN
-TOMORROW=$(date -d "+1 day" +%Y-%m-%d)
-date -d "${TOMORROW}T02:00:00Z" +%s
-
-# Ngày cụ thể
-date -d "2026-05-01T02:00:00Z" +%s
-```
+| File | Mô tả | Push git? |
+|------|--------|----------|
+| `SKILL.md` | Document này | ✅ |
+| `scripts/refresh-tokens.js` | Script refresh tokens | ✅ |
+| `scripts/list-pages.js` | Script list pages | ✅ |
+| `.env` | Credentials (user nhập) | ❌ |
+| `tokens.json` | Page token map | ❌ |
+| `.gitignore` | Ignores .env, tokens.json | ✅ |
 
 ---
 
-## 📋 Workflow cho Schedule Post
+## 📚 Tham khảo
 
-### Bước 1: Chuẩn bị data
-
-```json
-{
-  "page_id": "1016972191499562",
-  "page_token": "EAAW...token",
-  "content": "Nội dung bài viết...",
-  "image_url": "https://example.com/image.jpg",
-  "scheduled_date": "2026-04-25",
-  "scheduled_time": "09:00"
-}
-```
-
-### Bước 2: Tính timestamp
-
-```bash
-TIMESTAMP=$(date -d "2026-04-25T02:00:00Z" +%s)
-echo "Timestamp: $TIMESTAMP"
-# Output: 1777082400
-```
-
-### Bước 3: Gọi API
-
-```bash
-curl -X POST "https://graph.facebook.com/v19.0/${PAGE_ID}/feed" \
-  -F "message=${content}" \
-  -F "link=${image_url}" \
-  -F "published=false" \
-  -F "scheduled_publish_time=${TIMESTAMP}" \
-  -F "access_token=${PAGE_TOKEN}"
-```
-
-### Bước 4: Kiểm tra response
-
-```json
-// Thành công
-{"id": "1016972191499562_122109040647023513"}
-
-// Lỗi
-{"error": {"message": "...", "code": 100}}
-```
-
----
-
-## Setup (một lần)
-
-### 1. Tạo Meta App
-1. Vào https://developers.facebook.com/apps/ → Create App
-2. Chọn **"Other"** → **"Business"**
-3. Lấy **App ID** và **App Secret**
-
-### 2. Cấu hình .env
-```bash
-cp .env.example .env
-# Edit .env với App ID và Secret
-```
-
-### 3. Lấy Token
-```bash
-cd scripts
-npm install
-node auth.js login
-```
-
-## Commands
-
-### List pages
-```bash
-node cli.js pages
-```
-
-### Đăng bài ngay
-```bash
-node cli.js post create --page PAGE_ID --message "Hello"
-```
-
-### Schedule bài đăng
-```bash
-node cli.js post schedule \
-  --page PAGE_ID \
-  --message "Nội dung bài viết" \
-  --link "https://image.jpg" \
-  --date "2026-04-25" \
-  --time "09:00"
-```
-
-### List posts
-```bash
-node cli.js post list --page PAGE_ID --limit 10
-```
-
-### Comments
-```bash
-node cli.js comments list --post POST_ID
-node cli.js comments reply --comment COMMENT_ID --message "Thanks!"
-node cli.js comments hide --comment COMMENT_ID
-```
-
-## Permissions cần thiết
-- `pages_show_list`
-- `pages_read_engagement`
-- `pages_manage_posts`
-- `pages_manage_engagement`
-
-## Lưu ý
-- Page Token cần có quyền `pages_manage_posts`
-- Timestamp phải là tương lai (ít nhất 10 phút)
-- 09:00 VN = 02:00 UTC
+- [Meta Graph API - Pages](https://developers.facebook.com/docs/graph-api/reference/page/)
+- [Access Token Debugger](https://developers.facebook.com/tools/debug/accesstoken/)
+- [Token Exchange Flow](https://developers.facebook.com/docs/facebook-login/guides/access-token/get-long-lived/)
